@@ -4,6 +4,14 @@ from tkinter import ttk
 from sql_config import *
 from tkinter import simpledialog
 from tkinter import messagebox
+import time
+from reportlab.pdfgen import canvas
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.platypus import Paragraph
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate
+from reportlab.platypus.tables import Table
+
 
 """
 START - BACKEND SECTION OF FUNCTIONS
@@ -14,17 +22,28 @@ def add_words(word_text1, word_text2, word_entry1, word_entry2):
     e_1 = entry1
     entry2 = word_text2.get()
     e_2 = entry2
-    if len(e_1) or len(e_2) == 1:
-        sql_input(e_1, e_2)
+    sql_push = (e_1, e_2)
+    mycursor = mydb.cursor()
+    sqlFormula = "SELECT italy_word, english_word FROM dictionary WHERE italy_word=%s AND english_word=%s"
+    mycursor.execute(sqlFormula, sql_push)
+    myresult = mycursor.fetchall()
+    if len(myresult) == 0:
+        if len(e_1) and len(e_2) == 1:
+            sql_input(e_1, e_2)
+        else:
+            messagebox.showinfo('Warning', 'No word entered.\nType your words and try again.')
+        word_entry1.delete(0, END)
+        word_entry2.delete(0, END)
     else:
-        messagebox.showinfo('Warning', 'No word entered.\nType your words and try again.')
-    word_entry1.delete(0, END)
-    word_entry2.delete(0, END)
+        messagebox.showinfo('Warning', 'You already have the same pair of words.')
+        word_entry1.delete(0, END)
+        word_entry2.delete(0, END)
 
 
 def random_word():
     global first_word
     global second_word
+
     characters_to_remove = "[(')]"
     rand_words = []
     mycursor = mydb.cursor()
@@ -45,7 +64,7 @@ def random_word():
 
     myLabel = Label(app, text=str(first_word))
     myLabel.pack()
-    return first_word, second_word
+
 
 def guess_word(label1, label2, word_guess, word_guess_entry):
     guess = word_guess.get()
@@ -149,11 +168,9 @@ def page_start():
 
 def ita_eng_dict():
     remove_widgets()
-    app.geometry('800x800')
     mycursor = mydb.cursor()
     mycursor.execute("SELECT * FROM dictionary")
     table = ttk.Treeview(app, selectmode='browse')
-    table.grid(row=1, column=1, padx=300,pady=300)
     table["columns"]=("1", "2", "3")
     table['show']='headings'
     table.column("1", width=30, anchor='c')
@@ -176,6 +193,9 @@ def ita_eng_dict():
     rename_button = tk.Button(app, text='Count records', width=12, command=sql_count_records)
     rename_button.pack()
 
+    print_button = tk.Button(app, text='Print', width=12, command=gen_pdf)
+    print_button.pack()
+
     delete_button = tk.Button(app, text='Delete record', width=12, bg='red',
                               command=lambda: delete_record(table, label1))
     delete_button.pack()
@@ -187,8 +207,11 @@ def ita_eng_dict():
     my_font = ('times', 10, '')
     my_str=tk.StringVar()
     label1=tk.Label(app, textvariable=my_str, font=my_font)
-    label1.config(fg='blue')
-    my_str.set("msg here")
+    label1.config(fg='red')
+    my_str.set("Entry deleted")
+
+def gen_pdf():
+    pass
 
 def delete_record(table, label1):
     test = []
@@ -208,36 +231,63 @@ def search_record():
     searching = []
     searching.append(answer)
     searching.append(answer)
-    sql_push = searching
-    mycursor = mydb.cursor()
-    sqlFormula = "SELECT words_ID FROM dictionary WHERE english_word=%s OR italy_word=%s"
-    mycursor.execute(sqlFormula, sql_push)
-    myresult = mycursor.fetchall()
-    if len(myresult) == 1:
-        messagebox.showinfo('Check', f'{answer} is avaliable in the registry.')
+    if len(answer) > 0:
+        sql_push = searching
+        mycursor = mydb.cursor()
+        sqlFormula = "SELECT words_ID FROM dictionary WHERE english_word=%s OR italy_word=%s"
+        mycursor.execute(sqlFormula, sql_push)
+        myresult = mycursor.fetchall()
+        if len(myresult) >= 1:
+            messagebox.showinfo('Check', f'{answer} is avaliable in the registry.')
+        else:
+            messagebox.showinfo('Check', f'{answer} not found in the registry')
     else:
-        messagebox.showinfo('Check', f'{answer} not found in the registry')
-
+        messagebox.showinfo('Check', 'Cannot find empty value. Please insert word')
 def rename_record(table):
     answer1 = simpledialog.askstring("Check", "Rename italian word:")
     answer2 = simpledialog.askstring("Check", "Rename english word:")
-    selected_item = table.selection()
-    x = list(selected_item[0])
-    id = str(x[0] + x[1])
-    sql_push = (answer1, id)
+    sql_push = (answer1, answer2)
     mycursor = mydb.cursor()
-    sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
+    sqlFormula = "SELECT italy_word, english_word FROM dictionary WHERE italy_word=%s AND english_word=%s"
     mycursor.execute(sqlFormula, sql_push)
-    mydb.commit()
+    myresult = mycursor.fetchall()
+    print(myresult)
+    if len(myresult) == 0:
+        selected_item = table.selection()
+        x = list(selected_item[0])
+        id = str(x[0] + x[1])
+        if len(answer1) > 0:
+            sql_push = (answer1, id)
+            mycursor = mydb.cursor()
+            sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
+            mycursor.execute(sqlFormula, sql_push)
+            mydb.commit()
 
-    sql_push = (answer2, id)
-    mycursor = mydb.cursor()
-    sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
-    mycursor.execute(sqlFormula, sql_push)
-    mydb.commit()
+            sql_push = (answer2, id)
+            mycursor = mydb.cursor()
+            sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
+            mycursor.execute(sqlFormula, sql_push)
+            mydb.commit()
 
-    remove_widgets()
-    ita_eng_dict()
+            remove_widgets()
+            ita_eng_dict()
+        else:
+            messagebox.showinfo('Check', 'Cannot change word to empty value')
+    else:
+        messagebox.showinfo('Check', 'The same pair already exists in database')
+
+
+def countdown():
+    t = 10
+    while t:
+        mins, secs = divmod(t, 60)
+        timer = '{:02d}:{:02d}'.format(mins, secs)
+        print(timer, end="\r")
+        time.sleep(1)
+        t -= 1
+        print(t)
+
+    print('Fire in the hole!!')
 
 """
 END - BACKEND SECTION OF FUNCTIONS
