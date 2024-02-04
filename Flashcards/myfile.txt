@@ -1,0 +1,13 @@
+ragazzo: boy
+alto: tall
+basso: short
+grasso: fat
+giovanne: young
+piccolo: small
+il burro: a butter
+la stanza: room
+bisogno: need
+mare: sea
+il dottore: a medic
+l'ufficio: office
+sd: sd

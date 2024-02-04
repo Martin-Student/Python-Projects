@@ -5,12 +5,8 @@ from sql_config import *
 from tkinter import simpledialog
 from tkinter import messagebox
 import time
-from reportlab.pdfgen import canvas
-from reportlab.lib.styles import ParagraphStyle
-from reportlab.platypus import Paragraph
-from reportlab.lib.pagesizes import A4
-from reportlab.platypus import SimpleDocTemplate
-from reportlab.platypus.tables import Table
+from fpdf import FPDF
+from PyPDF2 import PdfFileMerger
 
 
 """
@@ -28,7 +24,7 @@ def add_words(word_text1, word_text2, word_entry1, word_entry2):
     mycursor.execute(sqlFormula, sql_push)
     myresult = mycursor.fetchall()
     if len(myresult) == 0:
-        if len(e_1) and len(e_2) == 1:
+        if len(e_1) and len(e_2) >= 1:
             sql_input(e_1, e_2)
         else:
             messagebox.showinfo('Warning', 'No word entered.\nType your words and try again.')
@@ -170,7 +166,12 @@ def ita_eng_dict():
     remove_widgets()
     mycursor = mydb.cursor()
     mycursor.execute("SELECT * FROM dictionary")
-    table = ttk.Treeview(app, selectmode='browse')
+    table = ttk.Treeview(app)
+
+    vsb = Scrollbar(app, orient="vertical", command=table.yview)
+    vsb.place(x=30+470+2, y=10, height=200+20)
+    table.configure(yscrollcommand=vsb.set)
+
     table["columns"]=("1", "2", "3")
     table['show']='headings'
     table.column("1", width=30, anchor='c')
@@ -197,34 +198,61 @@ def ita_eng_dict():
     print_button.pack()
 
     delete_button = tk.Button(app, text='Delete record', width=12, bg='red',
-                              command=lambda: delete_record(table, label1))
+                              command=lambda: delete_record(table))
     delete_button.pack()
 
 
 
     returno = Button(app, text="Back", width=12, command=page_addwords)
     returno.pack()
-    my_font = ('times', 10, '')
-    my_str=tk.StringVar()
-    label1=tk.Label(app, textvariable=my_str, font=my_font)
-    label1.config(fg='red')
-    my_str.set("Entry deleted")
 
 def gen_pdf():
-    pass
+    mycursor = mydb.cursor()
+    mycursor.execute("SELECT italy_word, english_word FROM dictionary")
+    rows = mycursor.fetchall()
+    print_file = dict(rows)
+    print("PRINTED!")
+    with open("myfile.txt", 'w') as f:
+        for key, value in print_file.items():
+            f.write('%s: %s\n' % (key, value))
 
-def delete_record(table, label1):
+    pdf = FPDF()
+    # Open the text file and read its contents
+    with open("myfile.txt", 'r') as f:
+        text = f.read()
+    pdf.add_page()
+    pdf.set_font('helvetica', size=14)
+    pdf.write(5, text)
+    pdf.output('flashcards.pdf')
+    import os
+    os.startfile('flashcards.pdf')
+
+def delete_record(table):
     test = []
     selected_item = table.selection()
     test.append(selected_item)
-    sql_push = test
-    mycursor = mydb.cursor()
-    sqlFormula = "DELETE FROM dictionary WHERE words_ID=%s"
-    mycursor.executemany(sqlFormula, sql_push)
-    mydb.commit()
-    table.delete(selected_item)
-    label1.config(fg='green')
-    label1.pack()
+    x = " ".join(selected_item)
+    y = x.split(" ")
+    if bool(selected_item) == True:
+        for i in y:
+            records = []
+            s = i
+            result = tuple(s.split())
+            records.append(result)
+            sql_push = records
+            mycursor = mydb.cursor()
+            sqlFormula = "DELETE FROM dictionary WHERE words_ID=%s"
+            mycursor.executemany(sqlFormula, sql_push)
+            mydb.commit()
+            remove_widgets()
+            ita_eng_dict()
+        if len(y) == 1:
+            messagebox.showinfo('Warning', f'{len(y)} record deleted')
+        else:
+            messagebox.showinfo('Warning', f'{len(y)} records deleted')
+    else:
+        messagebox.showinfo('Warning', 'Select entry and try again')
+
 
 def search_record():
     answer = simpledialog.askstring("Check", "What word do you want to check?")
@@ -244,38 +272,107 @@ def search_record():
     else:
         messagebox.showinfo('Check', 'Cannot find empty value. Please insert word')
 def rename_record(table):
-    answer1 = simpledialog.askstring("Check", "Rename italian word:")
-    answer2 = simpledialog.askstring("Check", "Rename english word:")
-    sql_push = (answer1, answer2)
-    mycursor = mydb.cursor()
-    sqlFormula = "SELECT italy_word, english_word FROM dictionary WHERE italy_word=%s AND english_word=%s"
-    mycursor.execute(sqlFormula, sql_push)
-    myresult = mycursor.fetchall()
-    print(myresult)
-    if len(myresult) == 0:
-        selected_item = table.selection()
-        x = list(selected_item[0])
-        id = str(x[0] + x[1])
-        if len(answer1) > 0:
-            sql_push = (answer1, id)
+    selected_item = table.selection()
+    if bool(selected_item) == True:
+        answer1 = simpledialog.askstring("Check", "Rename italian word:")
+        answer2 = simpledialog.askstring("Check", "Rename english word:")
+        if bool(answer1) == False or bool(answer2) == False:
+            sql_push = (answer1, answer2)
             mycursor = mydb.cursor()
-            sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
+            sqlFormula = "SELECT italy_word, english_word FROM dictionary WHERE italy_word=%s AND english_word=%s"
             mycursor.execute(sqlFormula, sql_push)
-            mydb.commit()
+            myresult = mycursor.fetchall()
+            if len(myresult) == 0:
+                selected_item = table.selection()
+                x = list(selected_item[0])
+                if len(x) == 2:
+                    id = str(x[0] + x[1])
+                    print(x)
+                    print(id)
+                    if len(answer1) > 0:
+                        sql_push = (answer1, id)
+                        mycursor = mydb.cursor()
+                        sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
+                        mycursor.execute(sqlFormula, sql_push)
+                        mydb.commit()
 
-            sql_push = (answer2, id)
-            mycursor = mydb.cursor()
-            sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
-            mycursor.execute(sqlFormula, sql_push)
-            mydb.commit()
+                        sql_push = (answer2, id)
+                        mycursor = mydb.cursor()
+                        sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
+                        mycursor.execute(sqlFormula, sql_push)
+                        mydb.commit()
 
-            remove_widgets()
-            ita_eng_dict()
+                        remove_widgets()
+                        ita_eng_dict()
+                    else:
+                        messagebox.showinfo('Check', 'Cannot change word to empty value')
+                elif len(x) == 1:
+                    id = str(x[0])
+                    if len(answer1) > 0:
+                        sql_push = (answer1, id)
+                        mycursor = mydb.cursor()
+                        sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
+                        mycursor.execute(sqlFormula, sql_push)
+                        mydb.commit()
+
+                        sql_push = (answer2, id)
+                        mycursor = mydb.cursor()
+                        sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
+                        mycursor.execute(sqlFormula, sql_push)
+                        mydb.commit()
+
+                        remove_widgets()
+                        ita_eng_dict()
+                    else:
+                        messagebox.showinfo('Check', 'Cannot change word to empty value')
+                elif len(x) == 3:
+                    id = str(x[0] + x[1] + x[2])
+                    print(x)
+                    print(id)
+                    if len(answer1) > 0:
+                        sql_push = (answer1, id)
+                        mycursor = mydb.cursor()
+                        sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
+                        mycursor.execute(sqlFormula, sql_push)
+                        mydb.commit()
+
+                        sql_push = (answer2, id)
+                        mycursor = mydb.cursor()
+                        sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
+                        mycursor.execute(sqlFormula, sql_push)
+                        mydb.commit()
+
+                        remove_widgets()
+                        ita_eng_dict()
+                    else:
+                        messagebox.showinfo('Check', 'Cannot change word to empty value')
+                elif len(x) == 4:
+                    id = str(x[0] + x[1] + x[2] + x[3])
+                    print(x)
+                    print(id)
+                    if len(answer1) > 0:
+                        sql_push = (answer1, id)
+                        mycursor = mydb.cursor()
+                        sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
+                        mycursor.execute(sqlFormula, sql_push)
+                        mydb.commit()
+
+                        sql_push = (answer2, id)
+                        mycursor = mydb.cursor()
+                        sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
+                        mycursor.execute(sqlFormula, sql_push)
+                        mydb.commit()
+
+                        remove_widgets()
+                        ita_eng_dict()
+                    else:
+                        messagebox.showinfo('Check', 'Cannot change word to empty value')
+            else:
+                messagebox.showinfo('Check', 'The same pair already exists in database')
         else:
-            messagebox.showinfo('Check', 'Cannot change word to empty value')
+            messagebox.showinfo('Check', 'Cannot change to empty record')
     else:
-        messagebox.showinfo('Check', 'The same pair already exists in database')
-
+        messagebox.showinfo('Warning', 'Select entry and try again')
 
 def countdown():
     t = 10
