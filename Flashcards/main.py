@@ -191,8 +191,8 @@ def ita_eng_dict():
     rename_button = tk.Button(app, text='Rename record', width=12, command=lambda: rename_record(table))
     rename_button.pack()
 
-    rename_button = tk.Button(app, text='Count records', width=12, command=sql_count_records)
-    rename_button.pack()
+    count_button = tk.Button(app, text='Count records', width=12, command=sql_count_records)
+    count_button.pack()
 
     print_button = tk.Button(app, text='Print', width=12, command=gen_pdf)
     print_button.pack()
@@ -273,104 +273,94 @@ def search_record():
         messagebox.showinfo('Check', 'Cannot find empty value. Please insert word')
 def rename_record(table):
     selected_item = table.selection()
+    print(bool(selected_item))
     if bool(selected_item) == True:
         answer1 = simpledialog.askstring("Check", "Rename italian word:")
         answer2 = simpledialog.askstring("Check", "Rename english word:")
-        if bool(answer1) == False or bool(answer2) == False:
-            sql_push = (answer1, answer2)
-            mycursor = mydb.cursor()
-            sqlFormula = "SELECT italy_word, english_word FROM dictionary WHERE italy_word=%s AND english_word=%s"
-            mycursor.execute(sqlFormula, sql_push)
-            myresult = mycursor.fetchall()
-            if len(myresult) == 0:
-                selected_item = table.selection()
-                x = list(selected_item[0])
-                if len(x) == 2:
-                    id = str(x[0] + x[1])
-                    print(x)
-                    print(id)
-                    if len(answer1) > 0:
-                        sql_push = (answer1, id)
-                        mycursor = mydb.cursor()
-                        sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
-                        mycursor.execute(sqlFormula, sql_push)
-                        mydb.commit()
-
-                        sql_push = (answer2, id)
-                        mycursor = mydb.cursor()
-                        sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
-                        mycursor.execute(sqlFormula, sql_push)
-                        mydb.commit()
-
-                        remove_widgets()
-                        ita_eng_dict()
-                    else:
-                        messagebox.showinfo('Check', 'Cannot change word to empty value')
-                elif len(x) == 1:
-                    id = str(x[0])
-                    if len(answer1) > 0:
-                        sql_push = (answer1, id)
-                        mycursor = mydb.cursor()
-                        sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
-                        mycursor.execute(sqlFormula, sql_push)
-                        mydb.commit()
-
-                        sql_push = (answer2, id)
-                        mycursor = mydb.cursor()
-                        sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
-                        mycursor.execute(sqlFormula, sql_push)
-                        mydb.commit()
-
-                        remove_widgets()
-                        ita_eng_dict()
-                    else:
-                        messagebox.showinfo('Check', 'Cannot change word to empty value')
-                elif len(x) == 3:
-                    id = str(x[0] + x[1] + x[2])
-                    print(x)
-                    print(id)
-                    if len(answer1) > 0:
-                        sql_push = (answer1, id)
-                        mycursor = mydb.cursor()
-                        sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
-                        mycursor.execute(sqlFormula, sql_push)
-                        mydb.commit()
-
-                        sql_push = (answer2, id)
-                        mycursor = mydb.cursor()
-                        sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
-                        mycursor.execute(sqlFormula, sql_push)
-                        mydb.commit()
-
-                        remove_widgets()
-                        ita_eng_dict()
-                    else:
-                        messagebox.showinfo('Check', 'Cannot change word to empty value')
-                elif len(x) == 4:
-                    id = str(x[0] + x[1] + x[2] + x[3])
-                    print(x)
-                    print(id)
-                    if len(answer1) > 0:
-                        sql_push = (answer1, id)
-                        mycursor = mydb.cursor()
-                        sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
-                        mycursor.execute(sqlFormula, sql_push)
-                        mydb.commit()
-
-                        sql_push = (answer2, id)
-                        mycursor = mydb.cursor()
-                        sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
-                        mycursor.execute(sqlFormula, sql_push)
-                        mydb.commit()
-
-                        remove_widgets()
-                        ita_eng_dict()
-                    else:
-                        messagebox.showinfo('Check', 'Cannot change word to empty value')
-            else:
-                messagebox.showinfo('Check', 'The same pair already exists in database')
+        sql_push = (answer1, answer2)
+        mycursor = mydb.cursor()
+        sqlFormula = "SELECT italy_word, english_word FROM dictionary WHERE italy_word=%s AND english_word=%s"
+        mycursor.execute(sqlFormula, sql_push)
+        myresult = mycursor.fetchall()
+        if len(myresult) == 0:
+            selected_item = table.selection()
+            x = list(selected_item[0])
+            if len(x) == 2:
+                id = str(x[0] + x[1])
+                print(x)
+                print(id)
+                if len(answer1) > 0:
+                    sql_push = (answer1, id)
+                    mycursor = mydb.cursor()
+                    sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
+                    mycursor.execute(sqlFormula, sql_push)
+                    mydb.commit()
+                    sql_push = (answer2, id)
+                    mycursor = mydb.cursor()
+                    sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
+                    mycursor.execute(sqlFormula, sql_push)
+                    mydb.commit()
+                    remove_widgets()
+                    ita_eng_dict()
+                else:
+                    messagebox.showinfo('Check', 'Cannot change word to empty value')
+            elif len(x) == 1:
+                id = str(x[0])
+                if len(answer1) > 0:
+                    sql_push = (answer1, id)
+                    mycursor = mydb.cursor()
+                    sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
+                    mycursor.execute(sqlFormula, sql_push)
+                    mydb.commit()
+                    sql_push = (answer2, id)
+                    mycursor = mydb.cursor()
+                    sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
+                    mycursor.execute(sqlFormula, sql_push)
+                    mydb.commit()
+                    remove_widgets()
+                    ita_eng_dict()
+                else:
+                    messagebox.showinfo('Check', 'Cannot change word to empty value')
+            elif len(x) == 3:
+                id = str(x[0] + x[1] + x[2])
+                print(x)
+                print(id)
+                if len(answer1) > 0:
+                    sql_push = (answer1, id)
+                    mycursor = mydb.cursor()
+                    sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
+                    mycursor.execute(sqlFormula, sql_push)
+                    mydb.commit()
+                    sql_push = (answer2, id)
+                    mycursor = mydb.cursor()
+                    sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
+                    mycursor.execute(sqlFormula, sql_push)
+                    mydb.commit()
+                    remove_widgets()
+                    ita_eng_dict()
+                else:
+                    messagebox.showinfo('Check', 'Cannot change word to empty value')
+            elif len(x) == 4:
+                id = str(x[0] + x[1] + x[2] + x[3])
+                print(x)
+                print(id)
+                if len(answer1) > 0:
+                    sql_push = (answer1, id)
+                    mycursor = mydb.cursor()
+                    sqlFormula = "UPDATE dictionary SET italy_word=%s WHERE words_ID=%s"
+                    mycursor.execute(sqlFormula, sql_push)
+                    mydb.commit()
+                    sql_push = (answer2, id)
+                    mycursor = mydb.cursor()
+                    sqlFormula = "UPDATE dictionary SET english_word=%s WHERE words_ID=%s"
+                    mycursor.execute(sqlFormula, sql_push)
+                    mydb.commit()
+                    remove_widgets()
+                    ita_eng_dict()
+                else:
+                    messagebox.showinfo('Check', 'Cannot change word to empty value')
         else:
-            messagebox.showinfo('Check', 'Cannot change to empty record')
+            messagebox.showinfo('Check', 'The same pair already exists in database')
     else:
         messagebox.showinfo('Warning', 'Select entry and try again')
 
