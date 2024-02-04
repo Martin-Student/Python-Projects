@@ -10,6 +10,12 @@ CREATE TABLE dictionary (
     english_word varchar(255),
     PRIMARY KEY (words_ID)
 );
+CREATE TABLE scores (
+	score_ID int NOT NULL AUTO_INCREMENT,
+    correct varchar(255),
+    incorrect varchar(255),
+    PRIMARY KEY (score_ID)
+);
 
 # IF SOMETHING WRONG
 DROP TABLE dictionary;
