@@ -19,6 +19,25 @@ def sql_input(x, y):
   mydb.commit()
   return
 
+def sql_mistake_input(x, y):
+  italy_word = x
+  english_word = y
+
+  sql_push = (italy_word, english_word)
+  mycursor = mydb.cursor()
+  sqlFormula = "SELECT italy_word, english_word FROM error_dictionary WHERE italy_word=%s AND english_word=%s"
+  mycursor.execute(sqlFormula, sql_push)
+  myresult = mycursor.fetchall()
+
+  if len(myresult) == 0:
+    sql_push = (italy_word, english_word)
+    mycursor = mydb.cursor()
+    sqlFormula = "INSERT INTO error_dictionary (italy_word, english_word) VALUES (%s, %s)"
+    mycursor.execute(sqlFormula, sql_push)
+    mydb.commit()
+  else:
+    print("bad word")
+
 
 def sql_count_records():
   records = 0
@@ -81,3 +100,6 @@ def score_sql_output():
     if digit.isdigit():
       sum_of_incorrect += int(digit)
   print("Niepoprawne: " + str(sum_of_incorrect))
+  final_count = (f"{sum_of_correct} good answers and {sum_of_incorrect} wrong answers")
+
+  return final_count
